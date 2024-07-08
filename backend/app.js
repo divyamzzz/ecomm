@@ -7,6 +7,8 @@ const helmet=require('helmet');
 const env=require("dotenv")
 const bcrypt=require("bcrypt")
 const passport=require("passport")
+const Strategy = require('passport-local').Strategy;
+const session = require('express-session');
 const PORT = 5000;
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36';
 const app = express();
@@ -14,6 +16,19 @@ app.use(cors());
 app.use(express.json());
 app.use(helmet());
 env.config();
+
+app.use(session({
+    secret:process.env.SESSION_SECRET,
+    resave:false,
+    saveUninitialized:true,
+    cookie:{
+      maxAge:1000*60*60*24,
+    }
+  })
+  );
+  
+  app.use(passport.initialize());
+  app.use(passport.session());
 const saltRounds=10;
 const db = new pg.Client({
     user: process.env.PG_USER,
@@ -116,18 +131,49 @@ app.get('/search', async (req, res) => {
 });
 
 
-// app.post('/login', async (req, res) => {
-//     const { username, password } = req.body;
-//     try {
-//       const result = await db.query('SELECT id from login where username=$1 and password=$2', [username,password]);
-//       if(result.rows.length===0)
-//         console.log("error");
-//       res.status(201).json(result.rows[0]);
-//     } catch (err) {
-//       console.error('Error executing query', err.stack);
-//       res.status(500).send('Server Error');
-//     }
-//   });
+
+app.post('/login', (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+        if (err) {
+            console.error('Error during authentication', err.stack);
+            return res.status(500).json({ message: 'Server Error' });
+        }
+        if (!user) {
+            return res.status(401).json({ message: info.message });
+        }
+
+        req.login(user, (err) => {
+            if (err) {
+                console.error('Error during login', err.stack);
+                return res.status(500).json({ message: 'Server Error' });
+            }
+            return res.status(200).json(user); 
+        });
+    })(req, res, next);
+});
+passport.use(new Strategy({
+}, async (username, password, cb) => {
+    try {
+        const result = await db.query("SELECT * FROM login WHERE username = $1", [username]);
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
+            const storedPass = user.password;
+            bcrypt.compare(password, storedPass, (err, isMatch) => {
+                if (err) return cb(err);
+                if (isMatch) {
+                    return cb(null, user);
+                } else {
+                    return cb(null, false, { message: 'Incorrect password.' });
+                }
+            });
+        } else {
+            return cb(null, false, { message: 'User not registered.' });
+        }
+    } catch (err) {
+        return cb(err);
+    }
+}));
+
   app.post('/signup', async (req, res) => {
     const { name,username, password } = req.body;
     try {
@@ -138,12 +184,12 @@ app.get('/search', async (req, res) => {
       }
       else
       {
-        bcrypt.hash(password,saltRounds,async(err,hash)=>{
+        bcrypt.hash(password, saltRounds,async(err,hash)=>{
             if(err)
                 console.log(err);
             else{
-                const result = await db.query('INSERT INTO login (Name,username, password) VALUES ($1, $2,$3) RETURNING *', [name,username, hash]);
-      res.status(201).json(result.rows[0]);
+                const result = await db.query('INSERT INTO login (Name, username, password) VALUES ($1, $2,$3) RETURNING *', [name,username, hash]);
+                res.status(201).json(result.rows[0]);
             }
         })
 
@@ -154,7 +200,12 @@ app.get('/search', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-  
+passport.serializeUser((user,cb)=>{
+    cb(null,user);
+  })
+  passport.deserializeUser((user,cb)=>{
+    cb(null,user);
+  })
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
