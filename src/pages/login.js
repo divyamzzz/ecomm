@@ -11,8 +11,9 @@ function Login(props) {
     const navigate = useNavigate();
     function handleSubmit(event) {
         event.preventDefault();
-        axios.post("http://localhost:5000/login", user)
+        axios.post("http://localhost:5000/login",user)
             .then(response => {
+                console.log(user);
                 if(response.data.id>0)
                     navigate('/search');
                 else
