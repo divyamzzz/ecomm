@@ -6,8 +6,9 @@ const About = () => {
 	return (
 		<div>
 			<h1>
-				GeeksforGeeks is a Computer Science portal
-				for geeks.
+				Ecomm is a website which fetches product data from amazon and snapdeal and shows the minimum price product of desire,
+				it also allows user to create a new account and also allows them to sign in using google. 
+				Happy Shopping 
 			</h1>
 		</div>
 	);
