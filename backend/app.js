@@ -9,6 +9,7 @@ const bcrypt=require("bcrypt")
 const passport=require("passport")
 const Strategy = require('passport-local').Strategy;
 const session = require('express-session');
+const GoogleStrategy = require('passport-google-oauth2').Strategy;
 const PORT = 5000;
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36';
 const app = express();
@@ -131,7 +132,7 @@ app.get('/search', async (req, res) => {
 });
 
 
-
+//local strategy//
 app.post('/login', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
@@ -151,6 +152,7 @@ app.post('/login', (req, res, next) => {
         });
     })(req, res, next);
 });
+
 passport.use(new Strategy({
 }, async (username, password, cb) => {
     try {
@@ -184,22 +186,64 @@ passport.use(new Strategy({
       }
       else
       {
-        bcrypt.hash(password, saltRounds,async(err,hash)=>{
+        bcrypt.hash(password,saltRounds,async(err,hash)=>{
             if(err)
                 console.log(err);
             else{
-                const result = await db.query('INSERT INTO login (Name, username, password) VALUES ($1, $2,$3) RETURNING *', [name,username, hash]);
-                res.status(201).json(result.rows[0]);
+                const result = await db.query('INSERT INTO login (Name,username, password) VALUES ($1, $2,$3) RETURNING *', [name,username, hash]);
+                const user=result.rows[0]
+                console.log(user);
+                req.login(user, (err) => {
+                    if (err) {
+                        console.error('Error during login', err.stack);
+                        return res.status(500).json({ message: 'Server Error' });
+                    }
+                    return res.status(200).json(result.rows[0]); 
+                });
             }
         })
 
     } 
   }
+  
   catch (err) {
     console.error('Error executing query', err.stack);
     res.status(500).send('Server Error');
   }
 });
+//local startegy//
+// google check //
+app.get(
+    "/auth/google",
+    passport.authenticate("google", {
+        scope: ["profile", "email"],
+    })
+);
+
+app.get("/auth/google/search", passport.authenticate("google", {
+    successRedirect: "http://localhost:3000/search",
+    failureRedirect: "http://localhost:3000/login"
+}));
+
+passport.use("google", new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "http://localhost:5000/auth/google/search",
+    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+}, async (accessToken, refreshToken, profile, cb) => {
+    try {
+        const result = await db.query("SELECT * from login where username=$1", [profile.emails[0].value]);
+        if (result.rows.length === 0) {
+            const newUser = await db.query("INSERT INTO login (username, password) VALUES ($1, $2) RETURNING *", [profile.emails[0].value, profile.id]);
+            cb(null, newUser.rows[0]);
+        } else {
+            cb(null, result.rows[0]);
+        }
+    } catch (err) {
+        cb(err);
+    }
+}));
+//google check// 
 passport.serializeUser((user,cb)=>{
     cb(null,user);
   })
