@@ -8,6 +8,9 @@ const Navbar = () => {
 		<>
 			<Nav>
 				<NavMenu>
+				<NavLink to="/" activeStyle>
+						Ecomm
+					</NavLink>
 					<NavLink to="/about" activeStyle>
 						About
 					</NavLink>

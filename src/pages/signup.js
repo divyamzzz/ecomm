@@ -57,7 +57,10 @@ function Signup(props) {
             <br/>
             <br/>
             <button type="submit">Submit</button>
-
+       
+                           <button> <a className="btn btn-block" href="http://localhost:5000/auth/google" role="button">
+                                Sign up with Google
+                            </a></button>
         </form>
         </div>
     );

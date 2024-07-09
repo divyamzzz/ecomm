@@ -61,17 +61,10 @@ function Login(props) {
                 <br />
                 <button type="submit">Submit</button>
                 {error && <p>{error}</p>}
-                <div className="col-sm-4">
-                    <div className="card">
-                        <div className="card-body">
-                            <a className="btn btn-block" href="http://localhost:5000/auth/google" role="button">
-                                <i className="fab fa-google"></i>
-                                Sign In with Google
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </form>
+                <button> <a className="btn btn-block" href="http://localhost:5000/auth/google" role="button">
+                                Sign in with Google
+                            </a></button>
+        </form>
         </div>
     );
 }
