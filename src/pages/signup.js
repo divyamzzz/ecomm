@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+
 function Signup(props) {
     const [user, setUser] = useState({
         name:"",
@@ -56,6 +57,7 @@ function Signup(props) {
             <br/>
             <br/>
             <button type="submit">Submit</button>
+
         </form>
         </div>
     );
