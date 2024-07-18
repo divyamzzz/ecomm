@@ -1,15 +1,19 @@
+// Filename - Search.js
+
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 function Search() {
     const [productName, setProductName] = useState('');
     const [amazonData, setAmazonData] = useState([]);
     const [snapdealData, setSnapdealData] = useState([]);
     const [leastPriceProduct, setLeastPriceProduct] = useState(null);
+    const userEmail = localStorage.getItem('userEmail');
 
     const fetchData = async () => {
         try {
-            const response = await axios.get(`http://localhost:5000/search?product=${encodeURIComponent(productName)}`);
+            const response = await axios.get(`http://localhost:5000/search?product=${encodeURIComponent(productName)}&email=${encodeURIComponent(userEmail)}`);
             setAmazonData(response.data.amazonData);
             setSnapdealData(response.data.snapdealData);
             setLeastPriceProduct(response.data.leastPriceProduct);
@@ -75,6 +79,8 @@ function Search() {
                     <p>No products found on Snapdeal.</p>
                 )}
             </div>
+
+            <Link to="/history">View Search History</Link> {/* Added the link to search history */}
         </div>
     );
 }
